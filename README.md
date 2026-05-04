@@ -12,11 +12,16 @@ Make sure you have Python installed on your computer. You will also need a C++ c
 ### Setup Instructions
 
 1. **Open your terminal / command prompt** and navigate to this folder.
-2. **Run the Setup Script**:
+2. **Run the Setup Script** using your system Python (this only needs to be done once — it creates the virtual environment):
    ```bash
    python setup.py
    ```
-   *This script is smart! It will automatically build a secure virtual environment and install all required Python libraries and deep learning models precisely into the `packages` folder, keeping your global Python clean.*
+   *This script creates a secure virtual environment inside the `packages` folder and installs all required libraries and deep learning models into it, keeping your global Python clean.*
+
+   > ⚠️ **Important:** After setup is complete, do NOT use `python` directly anymore. All commands must use the virtual environment's Python:
+   > ```bash
+   > .\packages\Scripts\python <script_name>.py
+   > ```
 
 ---
 

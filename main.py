@@ -47,7 +47,7 @@ class VideoCaptureThread:
         self.cap.release()
 
 # Camera Configuration
-base_url = "http://192.168.1.2:8080"
+base_url = "http://10.188.86.143:8080"
 video_url = f"{base_url}/video"
 snapshot_url = f"{base_url}/shot.jpg"
 
