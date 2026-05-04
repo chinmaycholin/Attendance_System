@@ -1,62 +1,141 @@
 # Smart Attendance System
 
-This is an automated Face Recognition Attendance System that uses OpenCV's Deep Neural Networks (DNN) for blazing-fast face detection and a heavy ResNet CNN for high-accuracy identification.
+An automated Face Recognition Attendance System built for classroom use. It uses **OpenCV DNN** for fast face detection and a **ResNet CNN** for high-accuracy identification — all accessible through a clean web dashboard that runs in your browser.
 
-## How to Install (For First-Time Setup)
+---
 
-If you have just downloaded this project to a new computer, follow these simple steps to install everything you need.
+## Features
+
+- 🎥 **Live IP Camera Feed** — Zero-lag MJPEG stream displayed directly in the browser
+- 🧠 **AI Face Recognition** — OpenCV DNN + ResNet CNN pipeline (no cloud, 100% offline)
+- ⏱️ **Auto Snapshots** — Automatically takes a high-quality snapshot every 60 seconds
+- 📸 **Manual Snapshot** — On-demand attendance check with a camera flash & toast confirmation
+- 📋 **Live Dashboard** — Real-time student attendance list with present/absent status
+- 💾 **Timestamped CSV Export** — Each session saved as a uniquely named file (e.g. `attendance_2026-05-04_09-30-00.csv`)
+- 🆔 **USN in CSV** — Each student's University Serial Number included in the exported file
+- 🗓️ **Date & Time in CSV** — Every CSV records the exact date and time the session was held
+
+---
+
+## CSV Output Format
+
+When you click **■ Stop & Save CSV**, the system generates a file like:
+
+**Filename:** `attendance_2026-05-04_09-30-00.csv`
+
+| USN | Name | Attendance | Date | Time |
+|-----|------|-----------|------|------|
+| 4MC23CS032 | Chinmay | Present | 04-05-2026 | 09:30 AM |
+| 4MC23CS005 | Abhishek | Absent | 04-05-2026 | 09:30 AM |
+| 4MC23CS049 | Gagan | Present | 04-05-2026 | 09:30 AM |
+
+> A student is marked **Present** only if they are confidently recognized in **at least 3 separate snapshots** during the session.
+
+---
+
+## Student USN Mapping
+
+The following USN mappings are configured in `app.py` under the `USN_MAP` dictionary:
+
+| Name | USN |
+|------|-----|
+| Chinmay | 4MC23CS032 |
+| Abhishek | 4MC23CS005 |
+| Gagan | 4MC23CS049 |
+
+To add more students, open `app.py` and add entries to `USN_MAP`:
+```python
+USN_MAP = {
+    "Chinmay":  "4MC23CS032",
+    "Abhishek": "4MC23CS005",
+    "Gagan":    "4MC23CS049",
+    # "NewStudent": "4MC23CS0XX",
+}
+```
+
+---
+
+## Installation (First-Time Setup)
 
 ### Prerequisites
-Make sure you have Python installed on your computer. You will also need a C++ compiler installed (like Visual Studio Build Tools on Windows) for the `face_recognition` library to compile properly.
+- Python installed on your computer
+- A C++ compiler (e.g. **Visual Studio Build Tools** on Windows) — required by the `face_recognition` library
 
 ### Setup Instructions
 
-1. **Open your terminal / command prompt** and navigate to this folder.
-2. **Run the Setup Script** using your system Python (this only needs to be done once — it creates the virtual environment):
+1. **Open a terminal / command prompt** and navigate to this project folder.
+2. **Run the setup script** (only needs to be done once):
    ```bash
    python setup.py
    ```
-   *This script creates a secure virtual environment inside the `packages` folder and installs all required libraries and deep learning models into it, keeping your global Python clean.*
+   *This creates a virtual environment inside the `packages/` folder and installs all required libraries and deep learning models, keeping your global Python clean.*
 
-   > ⚠️ **Important:** After setup is complete, do NOT use `python` directly anymore. All commands must use the virtual environment's Python:
-   > ```bash
-   > .\packages\Scripts\python <script_name>.py
-   > ```
+> ⚠️ **Important:** After setup, always use the virtual environment's Python for all commands:
+> ```bash
+> .\packages\Scripts\python <script_name>.py
+> ```
 
 ---
 
 ## How to Use
 
 ### Step 1: Camera Setup
-1. Download the **IP Webcam** app on your phone (available on Android).
-2. Open the app, scroll to the very bottom, and tap **Start server**.
-3. The app will display an IP address on your phone screen (e.g., `http://192.168.1.x:8080`).
-4. Open the `main.py` file in this project and look for the `base_url` variable near the top (around line 50).
-5. Change that URL to match the exact IP address shown on your phone screen.
+1. Download the **IP Webcam** app on your Android phone.
+2. Open the app, scroll to the bottom, and tap **Start server**.
+3. Note the IP address shown on screen (e.g., `http://192.168.1.x:8080`).
+4. In the web dashboard, click **⚙️ Settings** and enter your camera URL — no need to edit any code.
 
 ### Step 2: Add Training Data
 1. Open the `dataset/` folder.
-2. Create a new folder with the name of the student (e.g., `dataset/Chinmay/`).
-3. Place a few high-quality pictures of the student inside that folder. Make sure to include some straight-on photos and some side-profile photos for maximum accuracy!
+2. Create a sub-folder named after the student (e.g., `dataset/Chinmay/`).
+3. Place clear photos of the student inside (include both front-facing and slightly angled shots for best accuracy).
 
-### Step 3: Train the System
-Run the training script to process the new dataset and generate the mathematical encodings. Simply **double-click the `train.bat` file**!
+### Step 3: Train the Model
+Double-click **`train.bat`** to process the dataset and generate face encodings.
 
-*(Alternatively, you can run the following command in your terminal):*
+*(Or run manually:)*
 ```bash
 .\packages\Scripts\python train.py
 ```
-*Note: You only need to run this when you add new people to the dataset.*
+> Only needs to be re-run when new students are added to the dataset.
 
 ### Step 4: Run the Attendance Dashboard
-Simply **double-click the `run.bat` file** in your folder!
-*(Alternatively, you can run `.\packages\Scripts\python app.py` in your terminal).*
+Double-click **`run.bat`** — your browser will open automatically.
 
-- Your web browser will automatically open straight to the beautiful attendance dashboard!
-- Click "**⚙️ Settings**" to update your IP Camera URL if needed.
-- Click "**▶ Start Attendance**" to begin the background AI processing.
-- The system will automatically process the camera feed every 60 seconds and update the live dashboard.
-- You can also click "**📸 Manual Snap**" at any time to force an immediate, on-demand attendance check.
-- When class is over, click "**■ Stop & Save CSV**", then click "**⬇ Download CSV**" to get your file.
+*(Or run manually:)*
+```bash
+.\packages\Scripts\python app.py
+```
 
-*(Note: A student is only marked "Present" if they are confidently recognized in at least 3 separate snapshots during the session).*
+#### Dashboard Controls
+
+| Button | Action |
+|--------|--------|
+| ⚙️ Settings | Set / update the IP Camera URL |
+| ▶ Start Attendance | Begin the AI processing loop |
+| 📸 Manual Snap | Force an immediate attendance snapshot (shows flash + toast confirmation) |
+| ■ Stop & Save CSV | End the session and save the timestamped CSV |
+| ⬇ Download CSV | Download the most recently saved CSV file |
+
+---
+
+## Project Structure
+
+```
+Attendance chinmay/
+├── app.py              # Flask web server & attendance logic
+├── main.py             # Standalone OpenCV window version (legacy)
+├── train.py            # Face encoding training script
+├── recognize.py        # Face detection & recognition pipeline
+├── setup.py            # One-time virtual environment + dependency installer
+├── run.bat             # Double-click to launch the web dashboard
+├── train.bat           # Double-click to re-train the model
+├── encodings.pkl       # Generated face encodings (created by train.py)
+├── settings.json       # Persisted camera URL setting
+├── dataset/            # Student photo folders  (e.g. dataset/Chinmay/)
+├── attendance_records/ # All saved CSV files go here (auto-created)
+├── packages/           # Virtual environment (created by setup.py)
+├── static/             # CSS and frontend assets
+└── templates/
+    └── index.html      # Web dashboard UI
+```

@@ -3,6 +3,7 @@ import cv2
 import pickle
 import time
 import json
+from datetime import datetime
 import threading
 import urllib.request
 import numpy as np
@@ -25,6 +26,17 @@ except FileNotFoundError:
     print("Error: encodings.pkl not found. Please run train.py first.")
     known_encodings, known_names, unique_names = [], [], set()
 
+# USN mapping  (add more students here as needed)
+USN_MAP = {
+    "Chinmay":  "4MC23CS032",
+    "Abhishek": "4MC23CS005",
+    "Gagan":    "4MC23CS049",
+}
+
+# Folder where all CSV files are stored
+CSV_DIR = "attendance_records"
+os.makedirs(CSV_DIR, exist_ok=True)
+
 # Global state
 attendance_counter = defaultdict(int)
 final_attendance = {name: "Absent" for name in unique_names}
@@ -32,6 +44,8 @@ is_running = False
 camera_url = "http://192.168.1.3:8080"
 attendance_thread = None
 last_snapshot_time = 0
+session_start_time = None   # Set when attendance starts
+last_csv_filename = os.path.join(CSV_DIR, "attendance.csv")  # Tracks the most recently saved file
 
 # Load settings
 if os.path.exists("settings.json"):
@@ -93,11 +107,12 @@ def status():
 
 @app.route("/api/start", methods=["POST"])
 def start_attendance():
-    global is_running, attendance_thread, attendance_counter, final_attendance
+    global is_running, attendance_thread, attendance_counter, final_attendance, session_start_time
     if not is_running:
-        # Reset counters
+        # Reset counters and record session start time
         attendance_counter = defaultdict(int)
         final_attendance = {name: "Absent" for name in unique_names}
+        session_start_time = datetime.now()
         
         is_running = True
         attendance_thread = threading.Thread(target=run_attendance_loop)
@@ -107,13 +122,31 @@ def start_attendance():
 
 @app.route("/api/stop", methods=["POST"])
 def stop_attendance():
-    global is_running
+    global is_running, last_csv_filename
     is_running = False
     
-    # Save to CSV
-    df = pd.DataFrame(list(final_attendance.items()), columns=["Name", "Attendance"])
-    df.to_csv("attendance.csv", index=False)
-    print("\n✅ Saved attendance.csv")
+    # Build timestamped filename inside attendance_records/
+    # e.g. attendance_records/attendance_2026-05-04_21-30-00.csv
+    now = session_start_time or datetime.now()
+    date_str = now.strftime("%Y-%m-%d")
+    time_str = now.strftime("%H-%M-%S")
+    csv_name = f"attendance_{date_str}_{time_str}.csv"
+    last_csv_filename = os.path.join(CSV_DIR, csv_name)
+    
+    # Add USN, Date and Time columns so the teacher has full info
+    rows = []
+    for name, status in final_attendance.items():
+        rows.append({
+            "USN":        USN_MAP.get(name, "N/A"),
+            "Name":       name,
+            "Attendance": status,
+            "Date":       now.strftime("%d-%m-%Y"),
+            "Time":       now.strftime("%I:%M %p")   # e.g. 09:30 AM
+        })
+    
+    df = pd.DataFrame(rows, columns=["USN", "Name", "Attendance", "Date", "Time"])
+    df.to_csv(last_csv_filename, index=False)
+    print(f"\n✅ Saved {last_csv_filename}")
     
     return jsonify({"success": True})
 
@@ -140,9 +173,9 @@ def save_settings():
 
 @app.route('/download_csv')
 def download_csv():
-    if os.path.exists("attendance.csv"):
-        return send_file("attendance.csv", as_attachment=True)
-    return "CSV not found. Please run attendance and stop it to generate.", 404
+    if os.path.exists(last_csv_filename):
+        return send_file(last_csv_filename, as_attachment=True, download_name=last_csv_filename)
+    return "CSV not found. Please stop the attendance session first to generate the file.", 404
 
 def open_browser():
     webbrowser.open("http://127.0.0.1:5000")

@@ -18,8 +18,37 @@
         </div>
 
         <div class="camera-section">
-            <div class="video-container">
+            <div class="video-container" style="position: relative;">
                 <img src="" alt="Camera Feed" id="video-stream">
+                <!-- Flash overlay for snapshot feedback -->
+                <div id="flash-overlay" style="
+                    display: none;
+                    position: absolute;
+                    inset: 0;
+                    background: white;
+                    border-radius: 12px;
+                    pointer-events: none;
+                    z-index: 10;
+                "></div>
+                <!-- Snapshot toast -->
+                <div id="snap-toast" style="
+                    display: none;
+                    position: absolute;
+                    bottom: 16px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    background: rgba(0,0,0,0.75);
+                    color: #fff;
+                    padding: 8px 20px;
+                    border-radius: 999px;
+                    font-size: 14px;
+                    font-weight: 600;
+                    letter-spacing: 0.5px;
+                    z-index: 20;
+                    pointer-events: none;
+                    backdrop-filter: blur(4px);
+                    border: 1px solid rgba(255,255,255,0.15);
+                ">📸 Snapshot Taken!</div>
             </div>
             <div class="controls">
                 <button id="start-btn" class="btn-primary" onclick="startAttendance()">▶ Start Attendance</button>
@@ -84,6 +113,36 @@
         }
 
         async function manualSnap() {
+            // --- Flash + Toast feedback ---
+            const flash = document.getElementById('flash-overlay');
+            const toast = document.getElementById('snap-toast');
+            const btn   = document.getElementById('manual-snap-btn');
+
+            // Disable button briefly to prevent spam
+            btn.disabled = true;
+
+            // Show flash: bright → fade out
+            flash.style.display = 'block';
+            flash.style.opacity = '0.85';
+            flash.style.transition = 'opacity 0.35s ease-out';
+            setTimeout(() => {
+                flash.style.opacity = '0';
+                setTimeout(() => { flash.style.display = 'none'; }, 400);
+            }, 80);
+
+            // Show toast notification
+            toast.style.display = 'block';
+            toast.style.opacity = '1';
+            toast.style.transition = 'opacity 0s';
+            setTimeout(() => {
+                toast.style.transition = 'opacity 0.6s ease-out';
+                toast.style.opacity = '0';
+                setTimeout(() => { toast.style.display = 'none'; }, 700);
+            }, 1200);
+
+            // Re-enable button after flash
+            setTimeout(() => { btn.disabled = false; }, 600);
+
             await fetch('/api/manual_snap', { method: 'POST' });
         }
 
