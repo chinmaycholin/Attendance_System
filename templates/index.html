@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Attendance System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+    <div class="dashboard">
+        <div class="header">
+            <h1>Smart Attendance</h1>
+            <div style="display: flex; gap: 15px; align-items: center;">
+                <span id="system-status" class="status-badge">System Stopped</span>
+                <button class="btn-secondary" onclick="openSettings()">⚙️ Settings</button>
+            </div>
+        </div>
+
+        <div class="camera-section">
+            <div class="video-container">
+                <img src="" alt="Camera Feed" id="video-stream">
+            </div>
+            <div class="controls">
+                <button id="start-btn" class="btn-primary" onclick="startAttendance()">▶ Start Attendance</button>
+                <button id="manual-snap-btn" class="btn-secondary" style="display: none;" onclick="manualSnap()">📸 Manual Snap</button>
+                <button id="stop-btn" class="btn-danger" style="display: none;" onclick="stopAttendance()">■ Stop & Save CSV</button>
+                <button class="btn-secondary" onclick="window.location.href='/download_csv'">⬇ Download CSV</button>
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <div class="card">
+                <h2>Live Attendance</h2>
+                <div class="student-list" id="student-list">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="settings-modal">
+        <div class="modal">
+            <h2>Camera Settings</h2>
+            <div class="input-group">
+                <label>IP Camera URL</label>
+                <input type="text" id="camera-url" placeholder="http://192.168.1.3:8080">
+            </div>
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="closeSettings()">Cancel</button>
+                <button class="btn-primary" onclick="saveSettings()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openSettings() {
+            document.getElementById('settings-modal').style.display = 'flex';
+        }
+
+        function closeSettings() {
+            document.getElementById('settings-modal').style.display = 'none';
+        }
+
+        async function saveSettings() {
+            const url = document.getElementById('camera-url').value;
+            await fetch('/api/settings', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({camera_url: url})
+            });
+            closeSettings();
+            // Connect directly to the phone's MJPEG stream
+            document.getElementById('video-stream').src = url + '/video';
+            fetchStatus();
+        }
+
+        async function startAttendance() {
+            await fetch('/api/start', { method: 'POST' });
+            document.getElementById('start-btn').style.display = 'none';
+            document.getElementById('manual-snap-btn').style.display = 'block';
+            document.getElementById('stop-btn').style.display = 'block';
+            fetchStatus();
+        }
+
+        async function manualSnap() {
+            await fetch('/api/manual_snap', { method: 'POST' });
+        }
+
+        async function stopAttendance() {
+            await fetch('/api/stop', { method: 'POST' });
+            document.getElementById('start-btn').style.display = 'block';
+            document.getElementById('manual-snap-btn').style.display = 'none';
+            document.getElementById('stop-btn').style.display = 'none';
+            fetchStatus();
+        }
+
+        async function fetchStatus() {
+            const res = await fetch('/api/status');
+            const data = await res.json();
+            
+            // Update Status Badge
+            const statusBadge = document.getElementById('system-status');
+            if (data.is_running) {
+                statusBadge.textContent = '● System Running';
+                statusBadge.classList.add('active');
+                document.getElementById('start-btn').style.display = 'none';
+                document.getElementById('manual-snap-btn').style.display = 'block';
+                document.getElementById('stop-btn').style.display = 'block';
+            } else {
+                statusBadge.textContent = 'System Stopped';
+                statusBadge.classList.remove('active');
+                document.getElementById('start-btn').style.display = 'block';
+                document.getElementById('manual-snap-btn').style.display = 'none';
+                document.getElementById('stop-btn').style.display = 'none';
+            }
+
+            // Update URL input only if modal is not open to prevent typing overwrite
+            if (document.getElementById('settings-modal').style.display !== 'flex') {
+                document.getElementById('camera-url').value = data.camera_url;
+                
+                // Directly set the browser to stream the phone's video feed for zero lag
+                const expectedVideoSrc = data.camera_url + '/video';
+                const imgEl = document.getElementById('video-stream');
+                if (!imgEl.src.includes(expectedVideoSrc)) {
+                    imgEl.src = expectedVideoSrc;
+                }
+            }
+
+            // Update Student List
+            const list = document.getElementById('student-list');
+            list.innerHTML = '';
+            
+            for (const [name, status] of Object.entries(data.attendance)) {
+                const count = data.counts[name] || 0;
+                const statusClass = status === 'Present' ? 'present' : 'absent';
+                
+                const div = document.createElement('div');
+                div.className = 'student-item';
+                div.innerHTML = `
+                    <span>${name} <span class="count-bubble">${count}/3</span></span>
+                    <span class="${statusClass}">${status}</span>
+                `;
+                list.appendChild(div);
+            }
+        }
+
+        // Poll status every 2 seconds
+        setInterval(fetchStatus, 2000);
+        fetchStatus();
+    </script>
+</body>
+</html>
